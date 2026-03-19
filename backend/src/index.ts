@@ -7,6 +7,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import tasksRoutes from './routes/tasks';
 import applyRoutes from './routes/apply';
+import { csrfProtection } from './middleware/csrf';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,9 @@ app.use(
     },
   })
 );
+
+// CSRF protection: validate Origin header for all state-changing requests
+app.use(csrfProtection);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
