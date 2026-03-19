@@ -72,6 +72,26 @@ export interface ApplicationWithTask {
   task: Task;
 }
 
+// Shape returned by GET /profile/:username (public endpoint)
+export interface PublicProfile {
+  id: string;
+  username: string;
+  avatar: string | null;
+  bio: string | null;
+  skillScore: number;
+  skillLevel: string;
+  createdAt: string;
+  languages: string[];
+  totalStars: number;
+  repositories: {
+    id: string;
+    name: string;
+    stars: number;
+    language: string | null;
+    url: string | null;
+  }[];
+}
+
 // Check if user is authenticated
 export async function checkAuth(): Promise<{ authenticated: boolean; userId?: string }> {
   const res = await api.get('/auth/me');
@@ -84,10 +104,22 @@ export async function getProfile(): Promise<UserProfile> {
   return res.data;
 }
 
+// Fetch a public developer profile by GitHub username (no auth required)
+export async function getPublicProfile(username: string): Promise<PublicProfile> {
+  const res = await api.get(`/profile/${username}`);
+  return res.data;
+}
+
 // Fetch tasks (optionally filter by skill)
 export async function getTasks(skill?: string): Promise<Task[]> {
   const params = skill ? { skill } : {};
   const res = await api.get('/tasks', { params });
+  return res.data;
+}
+
+// Fetch AI-recommended tasks for the logged-in developer
+export async function getRecommendedTasks(): Promise<Task[]> {
+  const res = await api.get('/tasks/recommended');
   return res.data;
 }
 

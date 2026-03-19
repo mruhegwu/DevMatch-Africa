@@ -7,6 +7,7 @@ import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import tasksRoutes from './routes/tasks';
 import applyRoutes from './routes/apply';
+import profileRoutes from './routes/profile';
 import { csrfProtection } from './middleware/csrf';
 
 // Load environment variables
@@ -52,6 +53,7 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/tasks', tasksRoutes);
 app.use('/apply', applyRoutes);
+app.use('/profile', profileRoutes); // Public developer portfolio pages
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

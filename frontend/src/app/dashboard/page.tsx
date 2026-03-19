@@ -9,11 +9,13 @@ import TaskCard from '@/components/TaskCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getProfile, getTasks, applyToTask, UserProfile, Task } from '@/lib/api';
-import { Loader2, RefreshCw, Briefcase, BookOpen, ArrowRight } from 'lucide-react';
+import { getProfile, getRecommendedTasks, applyToTask, UserProfile, Task } from '@/lib/api';
+import { Loader2, RefreshCw, Briefcase, BookOpen, ArrowRight, Share2, Check } from 'lucide-react';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const FRONTEND_URL =
+  typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,18 +25,18 @@ export default function DashboardPage() {
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // Check auth and load data
     const load = async () => {
       try {
-        const [userProfile, allTasks] = await Promise.all([
+        const [userProfile, recommended] = await Promise.all([
           getProfile(),
-          getTasks(),
+          getRecommendedTasks(),
         ]);
         setProfile(userProfile);
-        // Show only 3 suggested tasks on the dashboard
-        setTasks(allTasks.slice(0, 3));
+        setTasks(recommended);
       } catch {
         // Not authenticated — redirect to login
         router.push('/login');
@@ -50,9 +52,9 @@ export default function DashboardPage() {
     setError(null);
     try {
       await applyToTask(taskId);
-      // Refresh tasks to update applied status
-      const updatedTasks = await getTasks();
-      setTasks(updatedTasks.slice(0, 3));
+      // Refresh recommended tasks to update applied status
+      const updated = await getRecommendedTasks();
+      setTasks(updated);
       setSuccessMsg('Application submitted successfully! 🎉');
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
@@ -74,6 +76,15 @@ export default function DashboardPage() {
     } finally {
       setApplyingId(null);
     }
+  };
+
+  const handleShareProfile = () => {
+    if (!profile) return;
+    const url = `${FRONTEND_URL}/profile/${profile.username}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
   };
 
   if (loading) {
@@ -150,13 +161,44 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Refresh profile link */}
-            <a href={`${API_URL}/auth/github`}>
-              <Button variant="outline" className="w-full gap-2" size="sm">
-                <RefreshCw className="h-4 w-4" />
-                Refresh GitHub Profile
+            {/* Action buttons */}
+            <div className="space-y-2">
+              {/* Share public profile */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                size="sm"
+                onClick={handleShareProfile}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-500" />
+                    Link copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-4 w-4" />
+                    Share Portfolio
+                  </>
+                )}
               </Button>
-            </a>
+
+              {/* View public profile */}
+              <Link href={`/profile/${profile.username}`} target="_blank">
+                <Button variant="ghost" className="w-full gap-2" size="sm">
+                  <ArrowRight className="h-4 w-4" />
+                  View Public Profile
+                </Button>
+              </Link>
+
+              {/* Refresh GitHub data */}
+              <a href={`${API_URL}/auth/github`}>
+                <Button variant="ghost" className="w-full gap-2" size="sm">
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh GitHub Profile
+                </Button>
+              </a>
+            </div>
           </div>
 
           {/* ─── Right column: Repos + Tasks ──────────────────────────────── */}
@@ -187,16 +229,21 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Suggested Tasks */}
+            {/* Recommended Tasks (AI-matched) */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <Briefcase className="h-5 w-5" />
-                  Suggested Tasks
-                </h2>
+                <div>
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Briefcase className="h-5 w-5" />
+                    Recommended for You
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Matched to your skills and languages
+                  </p>
+                </div>
                 <Link href="/tasks">
                   <Button variant="ghost" size="sm" className="gap-1 text-xs">
-                    View all <ArrowRight className="h-3.5 w-3.5" />
+                    Browse all <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
               </div>

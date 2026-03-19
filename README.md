@@ -177,6 +177,7 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 GITHUB_CALLBACK_URL=http://localhost:4000/auth/github/callback
 OPENAI_API_KEY=your_openai_api_key
 FRONTEND_URL=http://localhost:3000
+ADMIN_SECRET=your-admin-secret-key
 PORT=4000
 ```
 
@@ -245,31 +246,50 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🧠 API Endpoints
 
-| Method | Endpoint              | Auth Required | Description                          |
-|--------|-----------------------|---------------|--------------------------------------|
-| GET    | `/auth/github`        | No            | Redirect to GitHub OAuth             |
-| GET    | `/auth/github/callback` | No          | OAuth callback — creates/updates user |
-| POST   | `/auth/logout`        | No            | Destroy session                      |
-| GET    | `/auth/me`            | No            | Check auth status                    |
-| GET    | `/user/profile`       | ✅            | Get full user profile with repos     |
-| GET    | `/user/repos`         | ✅            | Get user repositories                |
-| GET    | `/tasks`              | ✅            | List all tasks (filter by `?skill=`) |
-| GET    | `/tasks/:id`          | ✅            | Get single task                      |
-| POST   | `/apply`              | ✅            | Apply to a task (`{ taskId }`)       |
-| GET    | `/apply`              | ✅            | List user's applications             |
-| DELETE | `/apply/:id`          | ✅            | Withdraw an application              |
-| GET    | `/health`             | No            | Health check                         |
+| Method | Endpoint                | Auth Required | Description                          |
+|--------|-------------------------|---------------|--------------------------------------|
+| GET    | `/auth/github`          | No            | Redirect to GitHub OAuth             |
+| GET    | `/auth/github/callback` | No            | OAuth callback — creates/updates user |
+| POST   | `/auth/logout`          | No            | Destroy session                      |
+| GET    | `/auth/me`              | No            | Check auth status                    |
+| GET    | `/auth/csrf-token`      | No            | Get CSRF token for mutating requests |
+| GET    | `/user/profile`         | ✅            | Get full user profile with repos     |
+| GET    | `/user/repos`           | ✅            | Get user repositories                |
+| GET    | `/tasks`                | ✅            | List all tasks (filter by `?skill=`) |
+| GET    | `/tasks/recommended`    | ✅            | AI-matched tasks for the logged-in developer |
+| GET    | `/tasks/:id`            | ✅            | Get single task                      |
+| POST   | `/tasks`                | Admin secret  | Create a new task (`X-Admin-Secret` header) |
+| POST   | `/apply`                | ✅            | Apply to a task (`{ taskId }`)       |
+| GET    | `/apply`                | ✅            | List user's applications             |
+| DELETE | `/apply/:id`            | ✅            | Withdraw an application              |
+| GET    | `/profile/:username`    | No            | Public developer portfolio (shareable) |
+| GET    | `/health`               | No            | Health check                         |
+
+### Creating Tasks (Admin)
+
+```bash
+curl -X POST http://localhost:4000/tasks \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Secret: your-admin-secret-key" \
+  -d '{
+    "title": "Build a React landing page",
+    "description": "Create a responsive landing page for our startup.",
+    "budget": 400,
+    "skillsRequired": ["React", "TypeScript", "CSS"]
+  }'
+```
 
 ---
 
 ## 🎨 UI Pages
 
-| Route        | Description                                           |
-|--------------|-------------------------------------------------------|
-| `/`          | Landing page with hero, features, and CTA             |
-| `/login`     | GitHub OAuth login page                               |
-| `/dashboard` | Developer dashboard with profile, repos, and tasks    |
-| `/tasks`     | Full task marketplace with search and skill filters   |
+| Route                    | Description                                           |
+|--------------------------|-------------------------------------------------------|
+| `/`                      | Landing page with hero, features, and CTA             |
+| `/login`                 | GitHub OAuth login page                               |
+| `/dashboard`             | Developer dashboard with profile, recommended tasks   |
+| `/tasks`                 | Full task marketplace with search and skill filters   |
+| `/profile/[username]`    | Public shareable developer portfolio (no login needed) |
 
 ---
 
