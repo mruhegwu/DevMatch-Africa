@@ -1,37 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 
-// Simple CSRF protection via Origin / Referer header validation.
-// This guards against cross-site request forgery for state-changing endpoints
-// when the app uses session cookies.
+// CSRF protection using the Synchronizer Token Pattern.
 //
-// For a REST API consumed by a dedicated frontend we verify that non-GET
-// requests originate from the known frontend origin.  Legitimate browser
-// requests always send the Origin (or, as a fallback, the Referer) header.
+// A secret CSRF token is generated and stored in the user's session on first
+// request.  For every state-changing HTTP method (POST/PUT/PATCH/DELETE) the
+// server validates that the client included the same token as a request header
+// (X-CSRF-Token).  Because the Same-Origin Policy prevents attacker-controlled
+// pages from reading the token, cross-site request forgery is blocked.
+//
+// The frontend must:
+//   1. Call GET /auth/csrf-token to obtain the current token.
+//   2. Include the token in every mutating request header: X-CSRF-Token: <token>.
 
+const CSRF_TOKEN_LENGTH = 32; // bytes → 64 hex chars
+
+/** Return (or lazily create) the CSRF token stored in the session. */
+export function getSessionCsrfToken(req: Request): string {
+  const sess = req.session as { csrfToken?: string };
+  if (!sess.csrfToken) {
+    sess.csrfToken = crypto.randomBytes(CSRF_TOKEN_LENGTH).toString('hex');
+  }
+  return sess.csrfToken;
+}
+
+/** Middleware that enforces CSRF token validation on mutating requests. */
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
-  // Only validate state-changing methods
   const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
   if (safeMethods.includes(req.method)) {
     next();
     return;
   }
 
-  // The OAuth callback is GET — not covered by this middleware — but we allow
-  // POST /auth/logout from the frontend without a body origin check because
-  // it uses the Origin header which is validated below.
+  // Read the expected token from the session (creates one if missing)
+  const expectedToken = getSessionCsrfToken(req);
 
-  const allowedOrigin = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  // The client must send the token via X-CSRF-Token header
+  const providedToken = req.headers['x-csrf-token'];
 
-  const origin = req.headers['origin'];
-  const referer = req.headers['referer'];
-
-  // Prefer the Origin header; fall back to Referer
-  const requestOrigin = origin ?? (referer ? new URL(referer).origin : null);
-
-  if (!requestOrigin || requestOrigin !== allowedOrigin) {
-    res.status(403).json({ error: 'CSRF validation failed: invalid origin.' });
+  if (
+    !providedToken ||
+    typeof providedToken !== 'string' ||
+    !crypto.timingSafeEqual(
+      Buffer.from(providedToken),
+      Buffer.from(expectedToken)
+    )
+  ) {
+    res.status(403).json({ error: 'CSRF token validation failed.' });
     return;
   }
 
   next();
 }
+

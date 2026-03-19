@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { fetchGitHubProfile } from '../services/githubService';
 import { calculateSkillScore } from '../services/scoringService';
 import { generateAIProfile } from '../services/openaiService';
+import { getSessionCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -137,6 +138,14 @@ router.get('/me', (req: Request, res: Response) => {
   } else {
     res.json({ authenticated: false });
   }
+});
+
+// GET /auth/csrf-token — returns the CSRF token for this session.
+// The frontend must call this before making any state-changing request and
+// include the token in subsequent requests via the X-CSRF-Token header.
+router.get('/csrf-token', (req: Request, res: Response) => {
+  const token = getSessionCsrfToken(req);
+  res.json({ csrfToken: token });
 });
 
 export default router;

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -6,6 +6,27 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+});
+
+// Cache the CSRF token in memory for the lifetime of the page
+let _csrfToken: string | null = null;
+
+async function getCsrfToken(): Promise<string> {
+  if (_csrfToken) return _csrfToken;
+  const res = await api.get<{ csrfToken: string }>('/auth/csrf-token');
+  _csrfToken = res.data.csrfToken;
+  return _csrfToken;
+}
+
+// Request interceptor — attach X-CSRF-Token header to all mutating requests
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const safeMethods = ['get', 'head', 'options'];
+  const method = (config.method || 'get').toLowerCase();
+  if (!safeMethods.includes(method)) {
+    const token = await getCsrfToken();
+    config.headers['X-CSRF-Token'] = token;
+  }
+  return config;
 });
 
 export interface UserProfile {
