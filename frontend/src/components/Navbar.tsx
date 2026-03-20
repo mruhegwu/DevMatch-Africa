@@ -50,6 +50,12 @@ export default function Navbar({ username, avatar, showDashboard }: NavbarProps)
               >
                 Tasks
               </Link>
+              <Link
+                href="/applications"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Applications
+              </Link>
             </>
           )}
 

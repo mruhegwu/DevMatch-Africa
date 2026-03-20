@@ -261,7 +261,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | POST   | `/tasks`                | Admin secret  | Create a new task (`X-Admin-Secret` header) |
 | POST   | `/apply`                | ✅            | Apply to a task (`{ taskId }`)       |
 | GET    | `/apply`                | ✅            | List user's applications             |
-| DELETE | `/apply/:id`            | ✅            | Withdraw an application              |
+| DELETE | `/apply/:id`            | ✅            | Withdraw a pending application       |
+| PATCH  | `/apply/:id`            | Admin secret  | Update application status (`X-Admin-Secret` header) |
 | GET    | `/profile/:username`    | No            | Public developer portfolio (shareable) |
 | GET    | `/health`               | No            | Health check                         |
 
@@ -279,17 +280,34 @@ curl -X POST http://localhost:4000/tasks \
   }'
 ```
 
+### Updating Application Status (Admin)
+
+```bash
+# Accept an application
+curl -X PATCH http://localhost:4000/apply/<application-id> \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Secret: your-admin-secret-key" \
+  -d '{"status": "accepted"}'
+
+# Reject an application
+curl -X PATCH http://localhost:4000/apply/<application-id> \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Secret: your-admin-secret-key" \
+  -d '{"status": "rejected"}'
+```
+
 ---
 
 ## 🎨 UI Pages
 
-| Route                    | Description                                           |
-|--------------------------|-------------------------------------------------------|
-| `/`                      | Landing page with hero, features, and CTA             |
-| `/login`                 | GitHub OAuth login page                               |
-| `/dashboard`             | Developer dashboard with profile, recommended tasks   |
-| `/tasks`                 | Full task marketplace with search and skill filters   |
-| `/profile/[username]`    | Public shareable developer portfolio (no login needed) |
+| Route                    | Description                                              |
+|--------------------------|----------------------------------------------------------|
+| `/`                      | Landing page with hero, features, and CTA                |
+| `/login`                 | GitHub OAuth login page                                  |
+| `/dashboard`             | Developer dashboard with profile and recommended tasks   |
+| `/tasks`                 | Full task marketplace with search and skill filters      |
+| `/applications`          | My Applications — full list with status and Withdraw btn |
+| `/profile/[username]`    | Public shareable developer portfolio (no login needed)   |
 
 ---
 

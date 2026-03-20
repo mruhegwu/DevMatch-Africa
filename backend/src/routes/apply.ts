@@ -80,4 +80,43 @@ router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /apply/:id — Update application status (admin-protected)
+// Allows admins to accept or reject an application.
+router.patch('/:id', async (req: Request, res: Response) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  const providedSecret = req.headers['x-admin-secret'];
+
+  if (!adminSecret || providedSecret !== adminSecret) {
+    return res.status(403).json({ error: 'Forbidden: invalid admin secret' });
+  }
+
+  const { id } = req.params;
+  const { status } = req.body as { status?: string };
+
+  const validStatuses = ['pending', 'accepted', 'rejected'];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({
+      error: `status must be one of: ${validStatuses.join(', ')}`,
+    });
+  }
+
+  try {
+    const application = await prisma.application.findUnique({ where: { id } });
+    if (!application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const updated = await prisma.application.update({
+      where: { id },
+      data: { status },
+      include: { task: true, user: { select: { id: true, username: true } } },
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error('Update application error:', error);
+    return res.status(500).json({ error: 'Failed to update application status' });
+  }
+});
+
 export default router;

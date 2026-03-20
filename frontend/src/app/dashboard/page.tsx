@@ -271,7 +271,14 @@ export default function DashboardPage() {
             {/* Recent Applications */}
             {profile.applications.length > 0 && (
               <div>
-                <h2 className="text-lg font-semibold mb-4">Recent Applications</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">Recent Applications</h2>
+                  <Link href="/applications">
+                    <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                      View all <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </div>
                 <div className="space-y-2">
                   {profile.applications.slice(0, 5).map((app) => (
                     <Card key={app.id}>

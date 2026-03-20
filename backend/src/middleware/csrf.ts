@@ -32,6 +32,16 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return;
   }
 
+  // Admin API requests authenticated with X-Admin-Secret are not browser-based
+  // and therefore cannot be subject to cross-site request forgery.  Skip CSRF
+  // for these requests so that server-side tooling (curl, scripts, CI) can call
+  // admin endpoints without a session cookie.
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (adminSecret && req.headers['x-admin-secret'] === adminSecret) {
+    next();
+    return;
+  }
+
   // Read the expected token from the session (creates one if missing)
   const expectedToken = getSessionCsrfToken(req);
 
